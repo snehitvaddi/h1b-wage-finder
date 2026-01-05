@@ -1,136 +1,62 @@
-# H1B Wage Analysis Dashboard
+# H1B Wage Finder 💰
 
-An interactive Streamlit dashboard to help H1B applicants identify US cities and counties with the lowest prevailing wage requirements, improving approval chances under the new wage-based H1B system.
+Find the lowest H1B prevailing wages for your occupation across US metro areas. Lower wages = Better H1B approval chances.
+
+**Live App**: [Coming soon after Streamlit deployment]
 
 ## Features
 
-- **Overall Statistics**: View comprehensive statistics across all US cities
-- **Salary-Based Recommendations**: **NEW!** Enter your current salary and get personalized recommendations for cities with lower prevailing wages
-- **Smart Location Search**: Find cities by name, county, or ZIP code (even with typos!)
-- **Advanced Search**: Filter by state, county, and occupation across all cities
-- **Occupation Insights**: Deep dive into specific occupations and identify best locations
-- **County-Level Analysis**: Detailed wage breakdown by county
-- **Interactive Visualizations**: Tables, charts, and detailed analytics
+- **Salary Recommendations**: Top 20 cities with lowest wages based on your metro area
+- **Wage Level Summary**: Filter by state/county, view all 4 wage levels
+- **Quick Search**: Fast lookup of lowest wages by occupation
+- **Smart Location Search**: Search by city, ZIP code, or county (900+ locations)
 
 ## Supported Occupations
 
-- Software Developers (15-1252)
-- Data Scientists (15-2051)
-- Database Architects (15-1243)
-- Database Administrators (15-1242)
-- Network/Systems Administrators (15-1244)
-- Computer Systems Analysts (15-1211)
-- Information Security Analysts (15-1212)
-- Civil Engineers (17-2051)
+- Software Developers
+- Data Scientists
+- Database Architects/Administrators
+- Network/Systems Administrators
+- Computer Systems Analysts
+- Information Security Analysts
+- Civil Engineers
 
-## Installation
+## Quick Start
 
-1. Clone or download this repository
-
-2. Install required packages:
 ```bash
+# Clone repo
+git clone https://github.com/snehitvaddi/h1b-wage-finder.git
+cd h1b-wage-finder
+
+# Install dependencies
 pip install -r requirements.txt
-```
 
-## Usage
-
-### Step 1: Process the Data
-
-First, run the data processor to prepare the wage data:
-
-```bash
-python data_processor.py
-```
-
-This will:
-- Load the OFLC wage data
-- Filter for top 200 US cities (MSAs)
-- Process occupation and geography data
-- Generate processed CSV files
-
-### Step 2: Launch the Dashboard
-
-```bash
+# Run app
 streamlit run app.py
 ```
 
-The dashboard will open in your browser at `http://localhost:8501`
+## Deploy to Streamlit Cloud
 
-## Dashboard Sections
-
-### 1. Overall Statistics
-- Key metrics (cities, counties, states covered) by occupation
-- Top 20 cities with lowest Level 2 wages (best for H1B)
-- Filter by specific occupation
-- Option to exclude US territories (show only 50 states + DC)
-
-### 2. Salary-Based Recommendations (NEW!)
-- **For current US employees seeking H1B sponsorship**
-- Enter your current salary and occupation
-- Search for your current location (by city, ZIP, or county)
-- Get top 20 cities where prevailing wages are LOWER than your salary
-- Cities ranked by lowest wage (best approval chances)
-- See your "salary advantage" for each city
-- Understand how much lower the prevailing wage is vs. your current pay
-- Download personalized recommendations as CSV
-
-### 3. Advanced Search
-- Filter by state, county, and occupation
-- Search across ALL cities (not limited to top 200)
-- Separate tables for Level 1, 2, 3, and 4 wages
-- Annual salary display (calculated from hourly rates)
-- Download filtered results
-
-### 4. Occupation Insights
-- Select occupation for detailed analysis
-- Top 10 counties with lowest Level 1 wages
-- Top 10 counties with lowest Level 2 wages
-- Geographic distribution by state
+1. Go to https://streamlit.io/cloud
+2. Sign in with GitHub
+3. Create new app from this repo
+4. Deploy!
 
 ## Data Source
 
-- **Source**: Office of Foreign Labor Certification (OFLC)
-- **Period**: Wage Year 2025-2026 (Effective August 1, 2025)
-- **Base Data**: BLS OEWS May 2024 estimates with 2018 SOC codes
+- **Source**: OFLC OEWS Wage Data
+- **Period**: 2025-2026 (Effective Aug 2025)
+- **Coverage**: All US metro areas
 
-## Understanding Wage Levels
+## How It Works
 
-- **Level 1**: Entry level positions
-- **Level 2**: Qualified positions (most common for H1B)
-- **Level 3**: Experienced positions
-- **Level 4**: Fully competent positions
+- **Level 1**: Entry level
+- **Level 2**: Qualified (most common for H1B)
+- **Level 3**: Experienced
+- **Level 4**: Fully competent
 
-**Important**: Lower prevailing wages can improve H1B approval chances, especially under the new wage-based selection system.
-
-## File Structure
-
-```
-H1B-Wages/
-├── app.py                          # Main Streamlit dashboard
-├── data_processor.py               # Data processing script
-├── requirements.txt                # Python dependencies
-├── README.md                       # This file
-└── OFLC_Wages_2025-26_Updated/    # Data directory
-    ├── ALC_Export.csv             # Main wage data
-    ├── Geography.csv              # Geographic mappings
-    ├── oes_soc_occs.csv          # Occupation definitions
-    ├── processed_wage_data.csv   # Generated by data_processor.py
-    └── top_200_cities.csv        # Generated by data_processor.py
-```
-
-## Future Enhancements
-
-- Integration with RAG (Retrieval-Augmented Generation) for natural language queries
-- Chatbot interface for interactive Q&A
-- Additional occupations and filtering options
-- Historical wage trend analysis
-- H1B filing statistics integration
-- Export reports in PDF format
+Lower prevailing wages improve H1B approval chances under the wage-based lottery system.
 
 ## License
 
-This tool is for informational purposes only. Always verify wage requirements with official OFLC sources and consult with immigration attorneys for legal advice.
-
-## Support
-
-For issues or feature requests, please create an issue in the repository.
+MIT License - For informational purposes only. Verify data independently.
