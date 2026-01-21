@@ -2,7 +2,7 @@
 
 Find the lowest H1B prevailing wages for your occupation across US metro areas. Lower wages = Better H1B approval chances.
 
-**Live App**: [Coming soon after Streamlit deployment]
+**Live App**: [h1b-wage-compass.streamlit.app](https://h1b-wage-compass.streamlit.app/)
 
 ## Features
 
@@ -60,3 +60,4 @@ Lower prevailing wages improve H1B approval chances under the wage-based lottery
 ## License
 
 MIT License - For informational purposes only. Verify data independently.
+
