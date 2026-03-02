@@ -27,6 +27,7 @@ DATA_DIR = Path("OFLC_Wages_2025-26_Updated")
 OCCUPATIONS = {
     '15-1252': 'Software Developers',
     '15-2051': 'Data Scientists',
+    '15-2031': 'Operations Research Analysts',
     '15-1243': 'Database Architects',
     '15-1242': 'Database Administrators',
     '15-1244': 'Network/Systems Administrators',
@@ -390,6 +391,138 @@ def display_occupation_insights(df, top_cities):
         height=500
     )
     st.plotly_chart(fig, use_container_width=True)
+
+
+def display_location_role_lookup(df, search_engine):
+    """Primary lookup flow: location + role, then wage levels and role comparisons."""
+    st.header("📍 Location + Role Lookup")
+
+    # Input controls
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        location_query = st.text_input(
+            "Enter PIN code, city, county, or metro area",
+            placeholder="e.g., 78701, Austin TX, Palm Beach County",
+            key="lookup_location_query"
+        )
+    with col2:
+        selected_occupation = st.selectbox(
+            "Select Role",
+            options=list(OCCUPATIONS.keys()),
+            format_func=lambda x: OCCUPATIONS[x],
+            key="lookup_occupation"
+        )
+
+    if 'lookup_matches' not in st.session_state:
+        st.session_state.lookup_matches = []
+    if 'lookup_selected_area' not in st.session_state:
+        st.session_state.lookup_selected_area = None
+
+    if st.button("Find wages", type="primary", key="lookup_find_wages"):
+        if not location_query.strip():
+            st.warning("Please enter a location first.")
+        else:
+            results = search_engine.smart_search(location_query, limit=8)
+            if results.empty:
+                st.session_state.lookup_matches = []
+                st.session_state.lookup_selected_area = None
+                st.warning(f"No locations found for '{location_query}'.")
+            else:
+                unique_results = results.drop_duplicates(subset=['Area'])[['Area', 'AreaName', 'State']].copy()
+                st.session_state.lookup_matches = unique_results.to_dict('records')
+                st.session_state.lookup_selected_area = st.session_state.lookup_matches[0]['Area']
+
+    matches = st.session_state.lookup_matches
+    if not matches:
+        st.info("Search a location to see wage levels for your selected role.")
+        return
+
+    area_options = [item['Area'] for item in matches]
+    area_labels = {
+        item['Area']: f"{item['AreaName']} ({item['State']})" if pd.notna(item.get('State')) else item['AreaName']
+        for item in matches
+    }
+
+    if st.session_state.lookup_selected_area not in area_options:
+        st.session_state.lookup_selected_area = area_options[0]
+
+    selected_area = st.selectbox(
+        "Choose matched location",
+        options=area_options,
+        index=area_options.index(st.session_state.lookup_selected_area),
+        format_func=lambda x: area_labels.get(x, x)
+    )
+    st.session_state.lookup_selected_area = selected_area
+
+    selected_area_name = area_labels[selected_area]
+
+    level_cols_hourly = ['Level1', 'Level2', 'Level3', 'Level4']
+    level_cols_annual = ['Level1_Annual', 'Level2_Annual', 'Level3_Annual', 'Level4_Annual']
+    level_pairs = list(zip(level_cols_hourly, level_cols_annual))
+
+    # Selected role wage levels in chosen location
+    role_df = df[
+        (df['Area'] == selected_area) &
+        (df['SocCode'] == selected_occupation)
+    ].copy()
+
+    if role_df.empty:
+        st.warning("No wage records found for this role in the selected location.")
+        return
+
+    role_by_county = role_df.groupby(['CountyTownName', 'State'])[level_cols_hourly + level_cols_annual].mean().reset_index()
+    role_avg = role_by_county[level_cols_hourly + level_cols_annual].mean()
+
+    st.subheader(f"💼 {OCCUPATIONS[selected_occupation]} in {selected_area_name}")
+
+    level_summary = []
+    for idx, (hourly_col, annual_col) in enumerate(level_pairs, start=1):
+        level_summary.append({
+            'Wage Level': f'Level {idx}',
+            'Hourly Wage': f"${role_avg[hourly_col]:.2f}/hr",
+            'Annual Wage': f"${role_avg[annual_col]:,.0f}/year"
+        })
+    st.dataframe(pd.DataFrame(level_summary), use_container_width=True, hide_index=True)
+
+    st.caption("Average shown across counties in the selected OFLC area.")
+    with st.expander("County-level wages for this role", expanded=False):
+        county_display = role_by_county.copy()
+        for idx, (hourly_col, annual_col) in enumerate(level_pairs, start=1):
+            county_display[f'Level {idx}'] = county_display.apply(
+                lambda row: f"${row[hourly_col]:.2f}/hr | ${row[annual_col]:,.0f}/year",
+                axis=1
+            )
+        county_display = county_display.sort_values('Level2_Annual')
+        st.dataframe(
+            county_display[['CountyTownName', 'State', 'Level 1', 'Level 2', 'Level 3', 'Level 4']],
+            use_container_width=True,
+            hide_index=True
+        )
+    st.divider()
+
+    # Other roles in the same location
+    st.subheader("🔁 Other Roles in This Location")
+    area_roles = df[df['Area'] == selected_area].copy()
+    other_roles = area_roles.groupby('SocCode')[level_cols_hourly + level_cols_annual].mean().reset_index()
+    other_roles = other_roles[other_roles['SocCode'].isin(OCCUPATIONS.keys())].copy()
+    other_roles['Role'] = other_roles['SocCode'].map(OCCUPATIONS)
+    other_roles.loc[other_roles['SocCode'] == selected_occupation, 'Role'] = (
+        other_roles.loc[other_roles['SocCode'] == selected_occupation, 'Role'] + " (Selected)"
+    )
+
+    for idx, (hourly_col, annual_col) in enumerate(level_pairs, start=1):
+        other_roles[f'Level {idx}'] = other_roles.apply(
+            lambda row: f"${row[hourly_col]:.2f}/hr | ${row[annual_col]:,.0f}/year",
+            axis=1
+        )
+
+    other_roles = other_roles.sort_values('Level2_Annual')
+    st.dataframe(
+        other_roles[['Role', 'Level 1', 'Level 2', 'Level 3', 'Level 4']],
+        use_container_width=True,
+        hide_index=True,
+        height=420
+    )
 
 
 def display_salary_comparison(df, search_engine):
@@ -782,22 +915,8 @@ def main():
     """Main application"""
 
     # Title and description
-    st.title("🇺🇸 H1B Wage Analysis Dashboard")
-    st.markdown("""
-    ### Find the Best Locations for H1B Approval
-
-    This dashboard helps you identify US cities and counties with the **lowest prevailing wage requirements**
-    for your occupation, improving your chances of H1B approval under the new wage-based system.
-
-    **Key Features:**
-    - 📊 Analyze wages across all US cities
-    - 💰 **NEW!** Get personalized city recommendations based on your current salary
-    - 🎯 Find cities where you have the best H1B approval chances
-    - 📍 County-level wage breakdown
-    - 💼 Multiple tech and engineering occupations
-
-    ---
-    """)
+    st.title("🇺🇸 H1B Wage Finder")
+    st.caption("Enter a location and role to instantly see Level 1-4 hourly and annual wages.")
 
     # Load data
     with st.spinner("Loading wage data..."):
@@ -813,19 +932,16 @@ def main():
     st.sidebar.title("Navigation")
     page = st.sidebar.radio(
         "Select View",
-        ["Salary Recommendations", "Wage Level Summary", "Quick Search"]
+        ["Location + Role Lookup", "Salary Recommendations", "Wage Level Summary", "Quick Search"]
     )
 
     st.sidebar.divider()
-    st.sidebar.markdown("""
-    ### About
-    OFLC Wage Data 2025-2026 for H1B applications.
-
-    Lower prevailing wages = Better H1B approval chances.
-    """)
+    st.sidebar.caption("OFLC Wage Data 2025-2026")
 
     # Display selected page
-    if page == "Salary Recommendations":
+    if page == "Location + Role Lookup":
+        display_location_role_lookup(df, search_engine)
+    elif page == "Salary Recommendations":
         display_salary_comparison(df, search_engine)
     elif page == "Wage Level Summary":
         display_wage_level_summary(df)
