@@ -9,6 +9,7 @@ from fuzzywuzzy import fuzz, process
 from typing import List, Dict, Tuple, Optional
 import requests
 import json
+from city_metro_mapper import CityMetroMapper
 
 
 class LocationSearchEngine:
@@ -47,6 +48,16 @@ class LocationSearchEngine:
             self.geo_df['State'].str.lower()
         ))
 
+        # Build city -> metro mapping from all unique metro names.
+        # This prevents ZIP lookups for cities like "Delray Beach" from fuzzy-matching
+        # unrelated "...Beach" metros.
+        metro_names = self.geo_df['AreaName'].str.replace(
+            r',\s*[A-Z]{2}(-[A-Z]{2})*$',
+            '',
+            regex=True
+        ).dropna().unique()
+        self.city_mapper = CityMetroMapper(pd.DataFrame({'CityName': metro_names}))
+
     def search_by_city(self, city_name: str, state: Optional[str] = None,
                        limit: int = 10) -> pd.DataFrame:
         """
@@ -75,6 +86,13 @@ class LocationSearchEngine:
         exact_matches = df[df['CityOnly'] == city_lower]
         if not exact_matches.empty:
             return exact_matches.groupby('Area').first().reset_index().head(limit)
+
+        # City -> metro mapping match (handles city names not present in metro label)
+        mapped_metros = self.city_mapper.get_metro_for_city(city_name.strip())
+        if mapped_metros:
+            mapped_matches = df[df['CityOnly'].isin([m.lower() for m in mapped_metros])]
+            if not mapped_matches.empty:
+                return mapped_matches.groupby('Area').first().reset_index().head(limit)
 
         # Fuzzy match on city name
         city_options = df['CityOnly'].unique()
