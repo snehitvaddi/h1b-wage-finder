@@ -69,9 +69,8 @@ def load_data():
         return None, None, None
 
 
-@st.cache_resource
 def get_search_engine(geo_df):
-    """Initialize location search engine (cached)"""
+    """Initialize location search engine"""
     return LocationSearchEngine(geo_df)
 
 
@@ -937,6 +936,7 @@ def main():
 
     st.sidebar.divider()
     st.sidebar.caption("OFLC Wage Data 2025-2026")
+    st.sidebar.markdown("[Official DOL Wage Search](https://flag.dol.gov/wage-data/wage-search)")
 
     # Display selected page
     if page == "Location + Role Lookup":
